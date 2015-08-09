@@ -3,7 +3,7 @@ Contributors: n7studios,wpcube
 Donate link: http://www.wpcube.co.uk/plugins/extract-filters-actions
 Tags: extract,filters,actions,apply_filters,do_action
 Requires at least: 3.6
-Tested up to: 4.1
+Tested up to: 4.3
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -61,6 +61,13 @@ Output will not be correctly generated if your function calls are on multiple li
 2. Settings Screen with Filters and Actions extracted from a WordPress Plugin 
 
 == Changelog ==
+
+= 1.0.2 =
+* Added: WordPress 4.3 compatibility
+
+= 1.0.1 =
+* Added: Table CSS Classes option
+* Fix: HTML Table for Actions wrongly had title = Filter Name. Changed to Action Name
 
 = 1.0 =
 * First release.

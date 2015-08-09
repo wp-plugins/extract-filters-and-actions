@@ -93,6 +93,16 @@
 		                    		</select>
 		                    	</p>
 		                    </div>
+
+		                    <div class="option">
+		                    	<p>
+		                    		<strong><?php _e( 'Table CSS Classes', $this->plugin->name ); ?></strong>
+		                    		<input type="text" name="<?php echo $this->plugin->name; ?>[classes]" value="<?php echo ( isset( $this->settings['classes'] ) ? $this->settings['classes'] : '' ); ?>" />
+		                    	</p>
+		                    	<p class="description">
+			                    	<?php _e( 'If outputting as HTML, optionally specify CSS classes for the table element.', $this->plugin->name ); ?>
+		                    	</p>
+		                    </div>
 		                    
 		                    <div class="option">
 		                    	<p>

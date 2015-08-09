@@ -2,7 +2,7 @@
 /**
 * Plugin Name: Extract Filters and Actions
 * Plugin URI: http://www.wpcube.co.uk/plugins/extract-filters-plugins
-* Version: 1.0
+* Version: 1.0.2
 * Author: WP Cube
 * Author URI: http://www.wpcube.co.uk
 * Description: Extract Filters and Actions lets you choose a WordPress Plugin on your installation (whether active or inactive), and find all references to apply_filters() and do_action() recursively, building output in either a HTML table or PHP array for you to then use in support documentation, personal reference etc.
@@ -34,21 +34,21 @@ class ExtractFiltersActions {
 	    
         // Plugin Details
         $this->plugin = new stdClass;
-        $this->plugin->name 		= 'extract-filters-actions'; // Plugin Folder
-        $this->plugin->displayName 	= 'Extract Filters and Actions'; // Plugin Name
-        $this->plugin->version 		= '1.0';
-        $this->plugin->folder 		= WP_PLUGIN_DIR .'/'. $this->plugin->name; // Full Path to Plugin Folder
-        $this->plugin->url 			= WP_PLUGIN_URL .'/'. str_replace( basename( __FILE__), "", plugin_basename(__FILE__) );
-        $this->plugin->adminScreens = array(
+        $this->plugin->name         = 'extract-filters-actions'; // Plugin Folder
+        $this->plugin->displayName  = 'Extract Filters and Actions'; // Plugin Name
+        $this->plugin->version      = '1.0.2';
+        $this->plugin->folder       = plugin_dir_path( __FILE__ );
+        $this->plugin->url          = plugin_dir_url( __FILE__ );
+		$this->plugin->adminScreens = array(
 	    	'plugins_page_' . $this->plugin->name,  
         );
         
         // Dashboard Submodule
         if ( !class_exists( 'WPCubeDashboardWidget' ) ) {
-			require_once( $this->plugin->folder . '/_modules/dashboard/dashboard.php' );
+			require_once( $this->plugin->folder . '_modules/dashboard/dashboard.php' );
 		}
 		$dashboard = new WPCubeDashboardWidget( $this->plugin ); 
-		
+
 		// Hooks
 		add_action( 'admin_enqueue_scripts', array( &$this, 'admin_scripts_css' ) );
         add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
@@ -63,16 +63,13 @@ class ExtractFiltersActions {
 	    
 	    // Only load on relevant screen(s)
 	    $screen = get_current_screen();
-	    if ( !in_array( $screen->base, $this->plugin->adminScreens ) ) {
+	    if ( ! isset( $screen->base ) || ! in_array( $screen->base, $this->plugin->adminScreens ) ) {
 		    return;
 	    }
 	    
     	// JS
     	wp_enqueue_script( $this->plugin->name.'-admin', $this->plugin->url.'js/admin.js', array( 'jquery' ), $this->plugin->version, true );
-    	        
-    	// CSS
-        // wp_enqueue_style( $this->plugin->name.'-admin', $this->plugin->url.'css/admin.css', array(), $this->plugin->version ); 
-        
+    	 
     }
     
     /**
@@ -111,13 +108,14 @@ class ExtractFiltersActions {
 		        	// Generate output
 		        	try {
 			        	$output = $this->run( 	
-			        							WP_PLUGIN_DIR . '/' . $this->settings['plugin'], 
-			        							( isset( $this->settings['filters'] ) ? 1 : 0 ),
-			        							( isset( $this->settings['actions'] ) ? 1 : 0 ),
-			        							$this->settings['format'],
-			        							( !empty( $this->settings['prefix'] ) ? $this->settings['prefix'] : false ),
-			        							( isset( $this->settings['byFile'] ) ? 1 : 0 ) 
-			        						);
+							WP_PLUGIN_DIR . '/' . $this->settings['plugin'], 
+							( isset( $this->settings['filters'] ) ? 1 : 0 ),
+							( isset( $this->settings['actions'] ) ? 1 : 0 ),
+							$this->settings['format'],
+							( !empty( $this->settings['prefix'] ) ? $this->settings['prefix'] : false ),
+							( isset( $this->settings['byFile'] ) ? 1 : 0 ),
+							( isset( $this->settings['classes'] ) ? $this->settings['classes'] : '' )
+						);
 			        	
 			        	// Convert output to string
 			        	if ( is_array( $output ) ) {
@@ -140,7 +138,7 @@ class ExtractFiltersActions {
         $plugins = $this->get_plugins();
         
 		// Load Settings Form
-        include_once( WP_PLUGIN_DIR . '/' . $this->plugin->name . '/views/settings.php' );  
+        include_once( $this->plugin->folder . 'views/settings.php' );  
     }
     
     /**
@@ -175,7 +173,7 @@ class ExtractFiltersActions {
 	*/
 	function load_language_files() {
 		
-		load_plugin_textdomain($this->plugin->name, false, $this->plugin->name.'/languages/');
+		load_plugin_textdomain( $this->plugin->name, false, $this->plugin->name . '/languages/' );
 		
 	}
 	
@@ -191,9 +189,10 @@ class ExtractFiltersActions {
 	* @param	bool	$returnFormat	Return Format (html|array)
 	* @param	bool	$prefixRequired	Optional prefix string required on filters and actions for inclusion in resultset (false = don't filter any found filters/actions)
 	* @param 	bool	$byFile			Denote filters and actions by filename (false = group filters and actions if they appear across multiple files)
+	* @param 	string  $cssClasses 	HTML Table CSS Classes (optional)
 	* @return	mixed					Output
 	*/
-	function run( $folder, $extractFilters = true, $extractActions = true, $returnFormat = 'html', $prefixRequired = false, $byFile = false ) {
+	function run( $folder, $extractFilters = true, $extractActions = true, $returnFormat = 'html', $prefixRequired = false, $byFile = false, $cssClasses = '' ) {
 		
 		$phpFiles = array();
 		
@@ -258,10 +257,10 @@ class ExtractFiltersActions {
 			default:
 				$html = '';
 				if ( $extractFilters && count( $filters ) > 0 ) {
-					$html .= $this->html( $filters, $byFile );
+					$html .= $this->html( $filters, $byFile, 'filters', $cssClasses );
 				}
 				if ( $extractActions && count( $actions ) > 0 ) {
-					$html .= $this->html( $actions, $byFile );
+					$html .= $this->html( $actions, $byFile, 'actions', $cssClasses );
 				}
 				
 				return $html;
@@ -320,17 +319,23 @@ class ExtractFiltersActions {
 	*
 	* @since 1.0.0
 	*
-	* @param 	array	$results Results
-	* @param	bool	$byFile	 Deliminate results by file
+	* @param 	array	$results 		Results
+	* @param	bool	$byFile	 		Deliminate results by file
+	* @param 	string 	$type 	 		Type (actions|filters)
+	* @param 	string 	$cssClasses 	Table CSS Classes (optional)
 	* @return	string	HTML
 	*/
-	private function html($results, $byFile) {
-		$html = '<table>
+	private function html( $results, $byFile, $type = 'actions', $cssClasses = '' ) {
+
+		// Generate title based on type
+		$title = ( ( $type == 'actions' ) ? __( 'Action Name', $this->plugin->name ) : __( 'Filter Name', $this->plugin->name ) );
+
+		$html = '<table' . ( ! empty( $cssClasses ) ? ' class="' . $cssClasses . '"' : '' ) . '>
 		<thead>
 			<tr>
 				' . ( $byFile ? '<th>File</th>' : '' ) . '
-				<th>Filter Name</th>
-				<th>Arguments</th>
+				<th>' . $title . '</th>
+				<th>' . __( 'Arguments', $this->plugin->name ) . '</th>
 			</tr>
 		</thead>
 		<tbody>';
